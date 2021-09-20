@@ -8,24 +8,38 @@ router.get("/", async (req, res) => {
         `SELECT code, name 
          FROM companies`
     );
-
     return res.json({companies: result.rows});
 });
 
 router.get("/:code", async (req, res, next) => {
     try {
-        const code = req.params.code;
+        const ccode = req.params.code;
         const result = await db.query(
             `SELECT *
              FROM companies
-             WHERE code=$1`, [code]
+             JOIN invoices
+             ON companies.code = invoices.comp_code
+             WHERE code=$1`, [ccode]
         );
-
+        
+        console.log(result.rows);
         if (Object.keys(result.rows).length === 0){
             throw new ExpressError("Company not found", 404);
         };
 
-        return res.json({company: result.rows});
+        const { code, name, description } = result.rows[0]
+        const invoices = []
+        for ( let i = 0; i < Object.keys(result.rows).length; i++) {
+            invoices.push({
+                id: result.rows[i].id,
+                amt: result.rows[i].amt,
+                paid: result.rows[i].paid,
+                add_date: result.rows[i].add_date,
+                paid_date: result.rows[i].paid_date
+            })
+        };
+        console.log(invoices);
+        return res.json({company: {code: code, name: name, description: description, invoices: invoices}});
     } catch (e){
         return next(e);
     };
@@ -77,24 +91,28 @@ router.patch("/:code", async (req, res, next) => {
 });
 
 router.delete("/:code", async (req, res, next) => {
-    const code = req.params.code;
-    
-    // const found = await db.query(
-    //     `SELECT * 
-    //     FROM companies
-    //     WHERE code=$1
-    //     RETURNING name`, [code]
-    // );
-    // if (Object.keys(found.rows).length === 0){
-    //     throw new ExpressError("Company not found", 404);
-    // };
-    
-    const result = await db.query(
-        `DELETE FROM companies WHERE code=$1`, [code]
-    );
+    try {
+        const code = req.params.code;
+        
+        // const found = await db.query(
+        //     `SELECT * 
+        //     FROM companies
+        //     WHERE code=$1
+        //     RETURNING name`, [code]
+        // );
+        // if (Object.keys(found.rows).length === 0){
+        //     throw new ExpressError("Company not found", 404);
+        // };
+        
+        const result = await db.query(
+            `DELETE FROM companies WHERE code=$1`, [code]
+        );
 
-    return res.json({status: "deleted"});
-})
+        return res.json({status: "deleted"});
+    } catch (e) {
+        return next(e)
+    }
+});
 // why does assignment say to use put when we're not replacing everything
 // how do i check for existence of code row? two awaits don't play nice
 
