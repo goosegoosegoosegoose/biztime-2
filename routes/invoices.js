@@ -9,7 +9,7 @@ router.get("/", async (req, res) => {
          FROM invoices`
     );
         
-    return res.json({companies: result.rows});
+    return res.json({invoices: result.rows});
 });
 
 router.get("/:id", async (req, res, next) => {
@@ -18,7 +18,7 @@ router.get("/:id", async (req, res, next) => {
         const result = await db.query(
             `SELECT *
              FROM invoices
-             JOIN companies
+             LEFT JOIN companies
              ON invoices.comp_code = companies.code
              WHERE id=$1`, [iid]
         );
@@ -29,7 +29,7 @@ router.get("/:id", async (req, res, next) => {
 
         const { id, amt, paid, add_date, paid_date, code, name, description } = result.rows[0]
 
-        return res.json({invoice: {id: id, amt: amt, paid: paid, add_date: add_date, paid_date: paid_date, company: {code: code, name: name, description: description}}});
+        return res.json({invoice: {id, amt, paid, add_date, paid_date, company: {code, name, description}}});
     } catch (e){
         return next(e);
     };
@@ -83,6 +83,15 @@ router.patch("/:id", async (req, res, next) => {
 router.delete("/:id", async (req, res, next) => {
     try {
         const id = req.params.id;
+
+        const idSelect = await db.query(
+            `SELECT id
+            FROM invoices
+            WHERE id=$1`, [id]
+        );
+        if (idSelect.rows.length === 0){
+            throw new ExpressError("Invoice not found", 404);
+        };
     
         const result = await db.query(
             `DELETE FROM invoices WHERE id=$1`, [id]
