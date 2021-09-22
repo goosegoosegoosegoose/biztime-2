@@ -62,13 +62,21 @@ router.patch("/:id", async (req, res, next) => {
         };
 
         const id = req.params.id;
-        const { amt } = req.body;
-
-        const result = await db.query(
-            `UPDATE invoices SET amt=$1
-             WHERE id=$2
-             RETURNING id, comp_code, amt, paid, add_date, paid_date`, [amt, id] 
-        );
+        const { amt, paid } = req.body;
+        let result;
+        if (paid) {
+            result = await db.query(
+                `UPDATE invoices SET amt=$1, paid=$2, paid_date=CURRENT_DATE
+                WHERE id=$3
+                RETURNING id, comp_code, amt, paid, add_date, paid_date`, [amt, paid, id] 
+            )
+        } else {
+            result = await db.query(
+                `UPDATE invoices SET amt=$1, paid=$2, paid_date=Null
+                WHERE id=$3
+                RETURNING id, comp_code, amt, paid, add_date, paid_date`, [amt, paid, id] 
+            )
+        };
 
         if (Object.keys(result.rows).length === 0){
             throw new ExpressError("Company not found", 404);

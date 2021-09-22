@@ -2,6 +2,7 @@ process.env.NODE_ENV = "test";
 const request = require("supertest");
 const app = require("../app");
 let db = require("../db");
+const slugify = require("slugify");
 
 let testCompany;
 beforeEach(async() => {
@@ -49,13 +50,14 @@ describe("GET /companies/:code", () => {
 
 describe("POST /companies", () => {
     test("Post new company", async () => {
-        const test = {code: "test", name: "test", description:"test"}
+        const test = {name: "test TEST", description:"test"};
+        const slug = slugify(test.name, {lower: true, strict: true});
         const res = await request(app)
             .post("/companies")
             .send(test);
 
         expect(res.statusCode).toBe(201);
-        expect(res.body).toEqual({company: test});
+        expect(res.body).toEqual({company: {code: slug, name: test.name, description: test.description}});
     })
 });
 

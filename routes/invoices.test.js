@@ -69,15 +69,26 @@ describe("POST /invoices", () => {
 
 describe("PUT/PATCH /invoices/:id", () => {
     test("Change amount of invoice", async () => {
-        const {id, comp_code, paid, add_date, paid_date} = testInvoice;
+        const {id, comp_code, paid, paid_date} = testInvoice;
         const amt = 10;
         const res = await request(app)
             .patch(`/invoices/${id}`)
-            .send({ amt });
+            .send({ amt, paid });
 
         expect(res.statusCode).toBe(200);
         expect(res.body).toEqual({invoice: {id, comp_code, amt, paid, add_date: expect.any(String), paid_date}})
     });
+
+    test("Have company pay invoice", async () => {
+        const {id, comp_code, amt} = testInvoice;
+        const paid = true;
+        const res = await request(app)
+            .patch(`/invoices/${id}`)
+            .send({ amt, paid });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toEqual({invoice: {id, comp_code, amt, paid, add_date: expect.any(String), paid_date: expect.any(String)}})
+    })
 
     test("Responds with 404 for invalid id", async () => {
         const res = await request(app).patch("/invoices/190000000000");
